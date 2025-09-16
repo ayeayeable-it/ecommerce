@@ -2,13 +2,19 @@
 CREATE DATABASE IF NOT EXISTS able_ecom CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 USE able_ecom;
 
--- customers (minimal)
+-- customers
 CREATE TABLE IF NOT EXISTS customer (
   id INT AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(100),
   email VARCHAR(150) UNIQUE,
   password VARCHAR(255),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- productType
+CREATE TABLE IF NOT EXISTS productType (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(100)
 );
 
 -- products
@@ -18,14 +24,9 @@ CREATE TABLE IF NOT EXISTS product (
   product_type_id INT,
   price DECIMAL(10,2),
   stock INT DEFAULT 0,
-  image VARCHAR(100),
-  description TEXT
-);
-
--- productType
-CREATE TABLE IF NOT EXISTS productType (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  name VARCHAR(100)
+  image VARCHAR(255),
+  description TEXT,
+  CONSTRAINT fk_product_type FOREIGN KEY (product_type_id) REFERENCES productType(id)
 );
 
 -- orders
@@ -34,7 +35,8 @@ CREATE TABLE IF NOT EXISTS `order` (
   customer_id INT,
   total DECIMAL(10,2) DEFAULT 0,
   status ENUM('pending','confirmed','cancelled') DEFAULT 'pending',
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_order_customer FOREIGN KEY (customer_id) REFERENCES customer(id)
 );
 
 -- orderDetail
@@ -42,7 +44,9 @@ CREATE TABLE IF NOT EXISTS orderDetail (
   id INT AUTO_INCREMENT PRIMARY KEY,
   order_id INT,
   product_id INT,
-  qty INT
+  qty INT,
+  CONSTRAINT fk_orderDetail_order FOREIGN KEY (order_id) REFERENCES `order`(id),
+  CONSTRAINT fk_orderDetail_product FOREIGN KEY (product_id) REFERENCES product(id)
 );
 
 -- paymentType
@@ -57,10 +61,12 @@ CREATE TABLE IF NOT EXISTS payment (
   order_id INT,
   payment_type_id INT,
   amount DECIMAL(10,2),
-  paid_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  paid_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_payment_order FOREIGN KEY (order_id) REFERENCES `order`(id),
+  CONSTRAINT fk_payment_type FOREIGN KEY (payment_type_id) REFERENCES paymentType(id)
 );
 
--- sample admin account (you can secure later)
+-- sample admin account
 CREATE TABLE IF NOT EXISTS admin_user (
   id INT AUTO_INCREMENT PRIMARY KEY,
   username VARCHAR(100) UNIQUE,
@@ -77,13 +83,14 @@ INSERT IGNORE INTO product (id,name,product_type_id,price,stock,image,descriptio
 
 -- seed customers
 INSERT IGNORE INTO customer (id,name,email,password) VALUES
-(1,'Aye','aye@example.com','dummy');
+(1,'Aye','aye@example.com','dummy'),
+(2,'Su','su@example.com','dummy2');
 
--- seed admin (password: admin123) - hashed in PHP later; for seed we insert plain and will replace
-INSERT IGNORE INTO admin_user (username, password) VALUES ('admin','$2y$10$8Qw0m2s0d5bG9j6kq2Pp8OXm7YQvM6qJz6nF0zR2Wq1a6h8X9yR8e');
--- the password above is bcrypt('admin123')
+-- seed admin
+INSERT IGNORE INTO admin_user (username, password) 
+VALUES ('admin','$2y$10$8Qw0m2s0d5bG9j6kq2Pp8OXm7YQvM6qJz6nF0zR2Wq1a6h8X9yR8e');
 
--- seed some orders across months for a particular year (e.g., 2025)
+-- seed some orders across months for a particular year (2025)
 INSERT INTO `order` (customer_id, total, status, created_at) VALUES
 (1, 120.00, 'confirmed', '2025-01-15 10:00:00'),
 (2, 85.50, 'confirmed', '2025-01-25 12:30:00'),
